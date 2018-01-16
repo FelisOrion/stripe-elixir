@@ -57,22 +57,16 @@ defmodule Stripe do
   defp create_headers(opts) do
     [{"User-Agent", "Stripe/v1 stripe-elixir/#{@client_version}"},
       {"Content-Type", "application/x-www-form-urlencoded"}]
-    |> authorization_header(opts)
-    |> account_header(opts)
-  end
-
-  defp authorization_header(headers, opts) do
-    case Keyword.get(opts, :secret_key) do
-      nil -> [{"Authorization", "Bearer #{get_secret_key()}"} | headers]
-      key -> [{"Authorization", "Bearer #{key}"} | headers]
-    end
-  end
-
-  defp account_header(headers, opts) do
-    case Keyword.get(opts, :stripe_account) do
-      nil -> headers
-      account_id -> [{"Stripe-Account", account_id} | headers]
-    end
+    |> (fn(h)-> case Keyword.get(opts, :secret_key) do
+                        nil -> [{"Authorization", "Bearer #{get_secret_key()}"} | h]
+                        key -> [{"Authorization", "Bearer #{key}"} | h]
+                      end
+                    end).()
+    |> (fn(h)-> case Keyword.get(opts, :stripe_account) do
+                        nil -> h
+                        account_id -> [{"Stripe-Account", account_id} | h]
+                      end
+                    end).()
   end
 
   def request(action, endpoint, data, opts) when action in [:get, :post, :delete] do
